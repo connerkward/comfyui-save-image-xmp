@@ -19,12 +19,26 @@ def _sha256(path: str) -> str:
     return digest
 
 
-def _resolve(filename: str) -> str | None:
-    """Try folder_paths across all registered subfolders, return first hit."""
-    for folder_type in folder_paths.folder_names_and_paths:
-        path = folder_paths.get_full_path(folder_type, filename)
+def _resolve(value: str) -> str | None:
+    """
+    1. Exact match via folder_paths across all registered subfolders.
+    2. Prefix match: scan each base dir for any file whose stem starts with value.
+    """
+    for folder_type, (dirs, _) in folder_paths.folder_names_and_paths.items():
+        # Exact match (handles filenames with known extensions)
+        path = folder_paths.get_full_path(folder_type, value)
         if path and os.path.isfile(path):
             return path
+        # Prefix match (handles widget values without extension, e.g. SAM2, GroundingDINO)
+        for base in dirs:
+            if not os.path.isdir(base):
+                continue
+            for fname in os.listdir(base):
+                stem = os.path.splitext(fname)[0]
+                if stem == value or fname == value:
+                    full = os.path.join(base, fname)
+                    if os.path.isfile(full):
+                        return full
     return None
 
 
@@ -50,8 +64,8 @@ class ModelHashCollector:
             for value in inputs.values():
                 if not isinstance(value, str) or not value:
                     continue
-                # Skip obvious non-filenames (long strings, no extension, URLs)
-                if len(value) > 260 or "." not in value or value.startswith("http"):
+                # Skip obvious non-filenames
+                if len(value) > 260 or value.startswith("http"):
                     continue
                 full_path = _resolve(value)
                 if not full_path or full_path in seen:
