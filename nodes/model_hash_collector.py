@@ -1,26 +1,10 @@
 import hashlib
 import json
+import os
 
 import folder_paths
 
 _hash_cache: dict[str, str] = {}
-
-_LOADER_FIELDS: dict[str, list[str]] = {
-    "CheckpointLoaderSimple": ["ckpt_name"],
-    "UNETLoader": ["unet_name"],
-    "LoraLoader": ["lora_name"],
-    "CLIPLoader": ["clip_name"],
-    "VAELoader": ["vae_name"],
-    "UnetLoaderGGUF": ["unet_name"],
-}
-
-_SUBFOLDER: dict[str, str] = {
-    "ckpt_name": "checkpoints",
-    "unet_name": "diffusion_models",
-    "lora_name": "loras",
-    "clip_name": "clip",
-    "vae_name": "vae",
-}
 
 
 def _sha256(path: str) -> str:
@@ -33,6 +17,15 @@ def _sha256(path: str) -> str:
     digest = h.hexdigest()
     _hash_cache[path] = digest
     return digest
+
+
+def _resolve(filename: str) -> str | None:
+    """Try folder_paths across all registered subfolders, return first hit."""
+    for folder_type in folder_paths.folder_names_and_paths:
+        path = folder_paths.get_full_path(folder_type, filename)
+        if path and os.path.isfile(path):
+            return path
+    return None
 
 
 class ModelHashCollector:
@@ -53,15 +46,14 @@ class ModelHashCollector:
             return (json.dumps(results),)
 
         for node in prompt.values():
-            class_type = node.get("class_type", "")
-            fields = _LOADER_FIELDS.get(class_type, [])
             inputs = node.get("inputs", {})
-            for field in fields:
-                filename = inputs.get(field)
-                if not filename or not isinstance(filename, str):
+            for value in inputs.values():
+                if not isinstance(value, str) or not value:
                     continue
-                subfolder = _SUBFOLDER.get(field, "")
-                full_path = folder_paths.get_full_path(subfolder, filename)
+                # Skip obvious non-filenames (long strings, no extension, URLs)
+                if len(value) > 260 or "." not in value or value.startswith("http"):
+                    continue
+                full_path = _resolve(value)
                 if not full_path or full_path in seen:
                     continue
                 seen.add(full_path)
@@ -69,6 +61,6 @@ class ModelHashCollector:
                     digest = _sha256(full_path)
                 except OSError:
                     digest = ""
-                results.append({"name": filename, "path": full_path, "sha256": digest})
+                results.append({"name": value, "path": full_path, "sha256": digest})
 
         return (json.dumps(results),)
