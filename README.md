@@ -1,6 +1,8 @@
 # ComfyUI Save Layered Image with Metadata!
 
-ComfyUI custom nodes for saving LAYERED images with embedded XMP metadata — workflow, prompt graph, model SHA256 hashes, and arbitrary JSON, all burned into the file.
+Stop keeping track of so many files. 
+
+Save layered TIFFs and flat images (Webp, PNG, JPEG) from ComfyUI with XMP metadata burned into the file — the workflow graph, prompts, model SHA256 hashes, and any arbitrary JSON embedded per-file.
 
 ---
 
