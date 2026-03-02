@@ -82,6 +82,12 @@ TIFF is the only widely-supported lossless format that natively handles multiple
 
 ---
 
+## See also
+
+**[ComfyQL](https://github.com/connerkward/comfyui-quicklook)** — macOS viewer for ComfyUI image metadata. Right-click any PNG or TIFF saved by these nodes → Open With → ComfyQL to see a split panel: image on the left, embedded workflow and model hashes on the right.
+
+---
+
 ## Install
 
 ```bash
