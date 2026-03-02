@@ -4,25 +4,6 @@ ComfyUI custom nodes for saving LAYERED images with embedded XMP metadata — wo
 
 ---
 
-## Save Image (XMP)
-
-![Save Image (XMP)](screenshots/save-image-xmp.png)
-
-Saves a single image as **PNG**, **WEBP**, or **JPEG** with XMP metadata embedded inline.
-
-| Input | Type | Description |
-|---|---|---|
-| `images` | IMAGE | Image batch to save |
-| `json_metadata` | STRING | Optional JSON to embed in `cfl:extra` |
-| `filename_prefix` | STRING | Output filename prefix |
-| `author` | STRING | Author name embedded in XMP |
-| `format` | PNG/WEBP/JPEG | Output format |
-| `quality` | INT | Quality for lossy formats (1–100) |
-
-PNG files also get `workflow` and `prompt` tEXt chunks for native ComfyUI workflow reload.
-
----
-
 ## Save Layered TIFF (XMP)
 
 ![Save Layered TIFF (XMP)](screenshots/save-layered-tiff-xmp.png)
@@ -42,6 +23,25 @@ Saves a multi-page TIFF where each page is a named layer. XMP metadata is embedd
 Returns the output `filepath` as a STRING for downstream nodes.
 
 > macOS QuickLook, Finder thumbnails, and Preview.app all render the TIFF natively (Deflate/ZIP compression).
+
+---
+
+## Save Image (XMP)
+
+![Save Image (XMP)](screenshots/save-image-xmp.png)
+
+Saves a single image as **PNG**, **WEBP**, or **JPEG** with XMP metadata embedded inline.
+
+| Input | Type | Description |
+|---|---|---|
+| `images` | IMAGE | Image batch to save |
+| `json_metadata` | STRING | Optional JSON to embed in `cfl:extra` |
+| `filename_prefix` | STRING | Output filename prefix |
+| `author` | STRING | Author name embedded in XMP |
+| `format` | PNG/WEBP/JPEG | Output format |
+| `quality` | INT | Quality for lossy formats (1–100) |
+
+PNG files also get `workflow` and `prompt` tEXt chunks for native ComfyUI workflow reload.
 
 ---
 

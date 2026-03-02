@@ -1,5 +1,12 @@
 [project]
 name = "comfyui-save-image-xmp"
 version = "0.1.0"
-description = "ComfyUI nodes for saving images with XMP metadata (PNG/WebP/JPEG)"
+description = "ComfyUI nodes for saving images with XMP metadata (PNG/WebP/JPEG/TIFF)"
 dependencies = ["Pillow", "tifffile"]
+
+[project.urls]
+Repository = "https://github.com/connerkward/comfyui-save-image-xmp"
+
+[tool.comfy]
+PublisherId = "connerkward"
+DisplayName = "Save Image (XMP)"
