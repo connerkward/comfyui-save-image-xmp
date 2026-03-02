@@ -85,7 +85,8 @@ class SaveLayeredTIFFXMP:
                     extratags.append((700, "B", 0, xmp_bytes, True))
                 tif.write(
                     arr,
-                    compression="lzma",
+                    compression="deflate",
+                    compressionargs={"level": 9},
                     predictor=2,
                     extratags=extratags,
                     metadata=None,
