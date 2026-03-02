@@ -9,5 +9,5 @@ dependencies = ["Pillow", "tifffile"]
 Repository = "https://github.com/connerkward/comfyui-save-image-xmp"
 
 [tool.comfy]
-PublisherId = "connerkward"
+PublisherId = "ward"
 DisplayName = "Save Image (XMP)"
