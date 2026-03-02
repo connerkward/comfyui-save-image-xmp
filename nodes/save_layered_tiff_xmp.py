@@ -3,7 +3,7 @@ import os
 
 import folder_paths
 
-from .save_image_xmp import _build_xmp, _next_filename
+from .save_image_xmp import _build_xmp, _collect_model_hashes, _next_filename
 
 
 class SaveLayeredTIFFXMP:
@@ -20,13 +20,12 @@ class SaveLayeredTIFFXMP:
             "required": {
                 "preview_image": ("IMAGE",),
                 "preview_name": ("STRING", {"default": "preview"}),
-                "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI-XMP"}),
                 "author": ("STRING", {"default": ""}),
             },
             "optional": {
                 "layers": ("IMAGE",),
                 "layer_names": ("STRING", {"forceInput": True}),
-                "model_hashes": ("STRING", {"forceInput": True}),
                 "json_metadata": ("STRING", {"forceInput": True}),
             },
             "hidden": {
@@ -43,7 +42,6 @@ class SaveLayeredTIFFXMP:
         author=None,      # list[str]
         layers=None,      # list[IMAGE tensor] — one entry per connected image
         layer_names=None, # list[str] — optional names aligned to layers
-        model_hashes=None,
         json_metadata=None,
         prompt=None,
         extra_pnginfo=None,
@@ -52,14 +50,15 @@ class SaveLayeredTIFFXMP:
         from PIL import Image
 
         pv_name = preview_name[0] if preview_name else "preview"
-        prefix = filename_prefix[0] if filename_prefix else "ComfyUI"
+        prefix = filename_prefix[0] if filename_prefix else "ComfyUI-XMP"
         author_str = author[0] if author else ""
 
+        prompt_dict = prompt[0] if prompt else None
         workflow_str = ""
         if extra_pnginfo and extra_pnginfo[0] and "workflow" in extra_pnginfo[0]:
             workflow_str = json.dumps(extra_pnginfo[0]["workflow"])
-        prompt_str = json.dumps(prompt[0]) if prompt and prompt[0] else ""
-        models_str = model_hashes[0] if model_hashes else "[]"
+        prompt_str = json.dumps(prompt_dict) if prompt_dict else ""
+        models_str = _collect_model_hashes(prompt_dict)
         extra_str = json_metadata[0] if json_metadata else "{}"
 
         # Page 0: preview
@@ -86,8 +85,8 @@ class SaveLayeredTIFFXMP:
                     extratags.append((700, "B", 0, xmp_bytes, True))
                 tif.write(
                     arr,
-                    compression="deflate",
-                    compressionargs={"level": 6},
+                    compression="lzma",
+                    predictor=2,
                     extratags=extratags,
                     metadata=None,
                 )

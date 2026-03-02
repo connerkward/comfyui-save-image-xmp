@@ -1,6 +1,8 @@
+import hashlib
 import io
 import json
 import os
+import re
 import struct
 import zlib
 from xml.sax.saxutils import escape
@@ -9,6 +11,72 @@ import folder_paths
 from PIL import Image, PngImagePlugin
 
 
+# --- Model hash collection (shared cache across all save nodes) ---
+
+_hash_cache: dict[str, str] = {}
+
+
+def _sha256(path: str) -> str:
+    if path in _hash_cache:
+        return _hash_cache[path]
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    _hash_cache[path] = h.hexdigest()
+    return _hash_cache[path]
+
+
+def _resolve(value: str) -> str | None:
+    for folder_type in folder_paths.folder_names_and_paths:
+        path = folder_paths.get_full_path(folder_type, value)
+        if path and os.path.isfile(path):
+            return path
+    normalized = re.sub(r'\s*\([^)]*\)\s*$', '', value).lower()
+    models_dir = folder_paths.models_dir
+    search_dirs = set()
+    for bases, _ in folder_paths.folder_names_and_paths.values():
+        search_dirs.update(bases)
+    if os.path.isdir(models_dir):
+        for name in os.listdir(models_dir):
+            d = os.path.join(models_dir, name)
+            if os.path.isdir(d):
+                search_dirs.add(d)
+    for base in search_dirs:
+        try:
+            for fname in os.listdir(base):
+                stem = os.path.splitext(fname)[0]
+                if stem == value or stem.lower() == normalized:
+                    full = os.path.join(base, fname)
+                    if os.path.isfile(full):
+                        return full
+        except OSError:
+            continue
+    return None
+
+
+def _collect_model_hashes(prompt: dict) -> str:
+    results, seen = [], set()
+    if not prompt:
+        return "[]"
+    for node in prompt.values():
+        for value in node.get("inputs", {}).values():
+            if not isinstance(value, str) or not value or len(value) > 260 or value.startswith("http"):
+                continue
+            full_path = _resolve(value)
+            if not full_path or full_path in seen:
+                continue
+            seen.add(full_path)
+            try:
+                digest = _sha256(full_path)
+            except OSError:
+                digest = ""
+            results.append({"name": value, "path": full_path, "sha256": digest})
+    return json.dumps(results)
+
+
+# --- XMP / file helpers ---
+
 def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "", author: str = "") -> str:
     xmp = (
         '<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
@@ -16,15 +84,15 @@ def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str 
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
         '    <rdf:Description rdf:about=""\n'
         '      xmlns:cfl="http://ns.conward.io/comfyui/1.0/">\n'
-        f"      <cfl:workflow>{escape(workflow)}</cfl:workflow>\n"
-        f"      <cfl:prompt>{escape(prompt)}</cfl:prompt>\n"
-        f"      <cfl:models>{escape(models)}</cfl:models>\n"
-        f"      <cfl:extra>{escape(extra)}</cfl:extra>\n"
+        f"      <cfl:workflow>{escape(str(workflow))}</cfl:workflow>\n"
+        f"      <cfl:prompt>{escape(str(prompt))}</cfl:prompt>\n"
+        f"      <cfl:models>{escape(str(models))}</cfl:models>\n"
+        f"      <cfl:extra>{escape(str(extra))}</cfl:extra>\n"
     )
     if author:
-        xmp += f"      <cfl:author>{escape(author)}</cfl:author>\n"
+        xmp += f"      <cfl:author>{escape(str(author))}</cfl:author>\n"
     if layers:
-        xmp += f"      <cfl:layers>{escape(layers)}</cfl:layers>\n"
+        xmp += f"      <cfl:layers>{escape(str(layers))}</cfl:layers>\n"
     xmp += (
         "    </rdf:Description>\n"
         "  </rdf:RDF>\n"
@@ -67,13 +135,9 @@ def _save_jpeg(pil: Image.Image, path: str, xmp_bytes: bytes, quality: int):
     buf = io.BytesIO()
     pil.save(buf, format="JPEG", quality=quality)
     jpeg = buf.getvalue()
-
     marker_data = b"http://ns.adobe.com/xap/1.0/\x00" + xmp_bytes
-    # APP1 segment: FF E1, 2-byte big-endian length (includes length field itself)
     seg_len = len(marker_data) + 2
     app1 = b"\xff\xe1" + struct.pack(">H", seg_len) + marker_data
-
-    # Insert after SOI (first 2 bytes)
     final = jpeg[:2] + app1 + jpeg[2:]
     with open(path, "wb") as f:
         f.write(final)
@@ -90,13 +154,12 @@ class SaveImageXMP:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "filename_prefix": ("STRING", {"default": "ComfyUI-XMP"}),
                 "author": ("STRING", {"default": ""}),
                 "format": (["PNG", "WEBP", "JPEG"],),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
             },
             "optional": {
-                "model_hashes": ("STRING", {"forceInput": True}),
                 "json_metadata": ("STRING", {"forceInput": True}),
             },
             "hidden": {
@@ -108,10 +171,10 @@ class SaveImageXMP:
     def save(
         self,
         images,
-        filename_prefix="ComfyUI",
+        filename_prefix="ComfyUI-XMP",
+        author="",
         format="PNG",
         quality=95,
-        model_hashes=None,
         json_metadata=None,
         prompt=None,
         extra_pnginfo=None,
@@ -124,13 +187,13 @@ class SaveImageXMP:
             workflow_str = json.dumps(extra_pnginfo["workflow"])
 
         prompt_str = json.dumps(prompt) if prompt else ""
-        models_str = model_hashes if model_hashes else "[]"
+        models_str = _collect_model_hashes(prompt)
         extra_str = json_metadata if json_metadata else "{}"
 
         results = []
-        for i, tensor in enumerate(images):
+        for tensor in images:
             pil = _tensor_to_pil(tensor)
-            xmp_str = _build_xmp(workflow_str, prompt_str, models_str, extra_str)
+            xmp_str = _build_xmp(workflow_str, prompt_str, models_str, extra_str, author=author)
             xmp_bytes = xmp_str.encode("utf-8")
             path = _next_filename(output_dir, filename_prefix, ext)
 
@@ -141,7 +204,6 @@ class SaveImageXMP:
             elif format == "JPEG":
                 _save_jpeg(pil, path, xmp_bytes, quality)
 
-            filename = os.path.basename(path)
-            results.append({"filename": filename, "subfolder": "", "type": "output"})
+            results.append({"filename": os.path.basename(path), "subfolder": "", "type": "output"})
 
         return {"ui": {"images": results}}
