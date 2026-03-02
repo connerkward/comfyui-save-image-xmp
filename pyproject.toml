@@ -2,6 +2,7 @@
 name = "comfyui-save-image-xmp"
 version = "0.1.0"
 description = "ComfyUI nodes for saving images with XMP metadata (PNG/WebP/JPEG/TIFF)"
+license = { text = "MIT" }
 dependencies = ["Pillow", "tifffile"]
 
 [project.urls]

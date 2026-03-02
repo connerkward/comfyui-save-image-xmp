@@ -68,7 +68,7 @@ Most AI image outputs are saved as flat PNGs or JPEGs — one image, one file. W
 
 TIFF is the only widely-supported lossless format that natively handles multiple named layers in a single file — the same reason it has been the standard archival format in print, broadcast, and medical imaging for decades.
 
-**Lossless compression.** Pages are stored with Deflate/ZIP + delta predictor — no quality degradation, full bit-depth preservation, and roughly 30–50% smaller than uncompressed TIFF. Every pixel is exactly what the model produced.
+**Per-layer compression.** TIFF stores each page in its own Image File Directory (IFD), and each IFD carries its own compression tag. This means different layers can use different schemes in the same file — a preview layer at JPEG quality 90, mask layers at lossless Deflate, a float32 heatmap at uncompressed. Current nodes use Deflate/ZIP + delta predictor uniformly (~30–50% smaller than uncompressed), with full bit-depth preservation and no quality loss.
 
 **Multi-layer, single file.** Each page carries a `PageName` tag (TIFF tag 285) used as the layer name. One file = one complete output set. No zip archives, no naming conventions to maintain.
 
