@@ -19,26 +19,44 @@ def _sha256(path: str) -> str:
     return digest
 
 
+def _all_model_dirs() -> list[str]:
+    """All base dirs: registered folder_paths + direct subdirs of models_dir."""
+    dirs: set[str] = set()
+    for folder_type, (bases, _) in folder_paths.folder_names_and_paths.items():
+        dirs.update(bases)
+    # Also walk models_dir one level deep (catches unregistered: sam2, grounding-dino, etc.)
+    models_dir = folder_paths.models_dir
+    if os.path.isdir(models_dir):
+        for name in os.listdir(models_dir):
+            d = os.path.join(models_dir, name)
+            if os.path.isdir(d):
+                dirs.add(d)
+    return list(dirs)
+
+
 def _resolve(value: str) -> str | None:
     """
     1. Exact match via folder_paths across all registered subfolders.
-    2. Prefix match: scan each base dir for any file whose stem starts with value.
+    2. Stem match: scan all model dirs (registered + models_dir subdirs) for
+       any file whose stem equals value (handles extensionless widget names).
     """
-    for folder_type, (dirs, _) in folder_paths.folder_names_and_paths.items():
-        # Exact match (handles filenames with known extensions)
+    # Pass 1: exact match through registered folder types
+    for folder_type in folder_paths.folder_names_and_paths:
         path = folder_paths.get_full_path(folder_type, value)
         if path and os.path.isfile(path):
             return path
-        # Prefix match (handles widget values without extension, e.g. SAM2, GroundingDINO)
-        for base in dirs:
-            if not os.path.isdir(base):
-                continue
+
+    # Pass 2: stem match across all model dirs
+    for base in _all_model_dirs():
+        try:
             for fname in os.listdir(base):
-                stem = os.path.splitext(fname)[0]
-                if stem == value or fname == value:
+                if os.path.splitext(fname)[0] == value:
                     full = os.path.join(base, fname)
                     if os.path.isfile(full):
                         return full
+        except OSError:
+            continue
+
     return None
 
 
@@ -64,7 +82,6 @@ class ModelHashCollector:
             for value in inputs.values():
                 if not isinstance(value, str) or not value:
                     continue
-                # Skip obvious non-filenames
                 if len(value) > 260 or value.startswith("http"):
                     continue
                 full_path = _resolve(value)
