@@ -9,8 +9,8 @@ import folder_paths
 from PIL import Image, PngImagePlugin
 
 
-def _build_xmp(workflow: str, prompt: str, models: str, extra: str) -> str:
-    return (
+def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "") -> str:
+    xmp = (
         '<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
@@ -20,11 +20,16 @@ def _build_xmp(workflow: str, prompt: str, models: str, extra: str) -> str:
         f"      <cfl:prompt>{escape(prompt)}</cfl:prompt>\n"
         f"      <cfl:models>{escape(models)}</cfl:models>\n"
         f"      <cfl:extra>{escape(extra)}</cfl:extra>\n"
+    )
+    if layers:
+        xmp += f"      <cfl:layers>{escape(layers)}</cfl:layers>\n"
+    xmp += (
         "    </rdf:Description>\n"
         "  </rdf:RDF>\n"
         "</x:xmpmeta>\n"
         '<?xpacket end="w"?>'
     )
+    return xmp
 
 
 def _next_filename(output_dir: str, prefix: str, ext: str) -> str:
