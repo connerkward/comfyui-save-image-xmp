@@ -46,11 +46,16 @@ def _resolve(value: str) -> str | None:
         if path and os.path.isfile(path):
             return path
 
-    # Pass 2: stem match across all model dirs
+    # Pass 2: stem match (exact, then normalized) across all model dirs
+    # Normalized: strip trailing parenthetical e.g. " (694MB)", lowercase
+    import re
+    normalized = re.sub(r'\s*\([^)]*\)\s*$', '', value).lower()
+
     for base in _all_model_dirs():
         try:
             for fname in os.listdir(base):
-                if os.path.splitext(fname)[0] == value:
+                stem = os.path.splitext(fname)[0]
+                if stem == value or stem.lower() == normalized:
                     full = os.path.join(base, fname)
                     if os.path.isfile(full):
                         return full
