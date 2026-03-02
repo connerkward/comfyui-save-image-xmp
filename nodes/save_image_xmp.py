@@ -78,6 +78,12 @@ def _collect_model_hashes(prompt: dict) -> str:
 # --- XMP / file helpers ---
 
 def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "", author: str = "") -> str:
+    try:
+        model_list = json.loads(models) if models else []
+        model_names = ", ".join(m["name"] for m in model_list if "name" in m)
+    except (json.JSONDecodeError, TypeError):
+        model_names = ""
+
     xmp = (
         '<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
@@ -93,8 +99,25 @@ def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str 
         xmp += f"      <cfl:author>{escape(str(author))}</cfl:author>\n"
     if layers:
         xmp += f"      <cfl:layers>{escape(str(layers))}</cfl:layers>\n"
+    xmp += "    </rdf:Description>\n"
+
+    # Dublin Core — visible in Mac Get Info / Windows Properties
+    xmp += '    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+    if author:
+        xmp += (
+            "      <dc:creator><rdf:Seq>"
+            f"<rdf:li>{escape(str(author))}</rdf:li>"
+            "</rdf:Seq></dc:creator>\n"
+        )
+    if model_names:
+        xmp += (
+            "      <dc:description><rdf:Alt>"
+            f'<rdf:li xml:lang="x-default">{escape(model_names)}</rdf:li>'
+            "</rdf:Alt></dc:description>\n"
+        )
+    xmp += "    </rdf:Description>\n"
+
     xmp += (
-        "    </rdf:Description>\n"
         "  </rdf:RDF>\n"
         "</x:xmpmeta>\n"
         '<?xpacket end="w"?>'
