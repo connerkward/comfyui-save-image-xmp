@@ -9,7 +9,7 @@ import folder_paths
 from PIL import Image, PngImagePlugin
 
 
-def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "") -> str:
+def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "", author: str = "") -> str:
     xmp = (
         '<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
@@ -21,6 +21,8 @@ def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str 
         f"      <cfl:models>{escape(models)}</cfl:models>\n"
         f"      <cfl:extra>{escape(extra)}</cfl:extra>\n"
     )
+    if author:
+        xmp += f"      <cfl:author>{escape(author)}</cfl:author>\n"
     if layers:
         xmp += f"      <cfl:layers>{escape(layers)}</cfl:layers>\n"
     xmp += (
@@ -89,12 +91,13 @@ class SaveImageXMP:
             "required": {
                 "images": ("IMAGE",),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "author": ("STRING", {"default": ""}),
                 "format": (["PNG", "WEBP", "JPEG"],),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
             },
             "optional": {
-                "models": ("STRING", {"forceInput": True}),
-                "extra_metadata": ("STRING", {"forceInput": True}),
+                "model_hashes": ("STRING", {"forceInput": True}),
+                "json_metadata": ("STRING", {"forceInput": True}),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -108,8 +111,8 @@ class SaveImageXMP:
         filename_prefix="ComfyUI",
         format="PNG",
         quality=95,
-        models=None,
-        extra_metadata=None,
+        model_hashes=None,
+        json_metadata=None,
         prompt=None,
         extra_pnginfo=None,
     ):
@@ -121,8 +124,8 @@ class SaveImageXMP:
             workflow_str = json.dumps(extra_pnginfo["workflow"])
 
         prompt_str = json.dumps(prompt) if prompt else ""
-        models_str = models if models else "[]"
-        extra_str = extra_metadata if extra_metadata else "{}"
+        models_str = model_hashes if model_hashes else "[]"
+        extra_str = json_metadata if json_metadata else "{}"
 
         results = []
         for i, tensor in enumerate(images):
