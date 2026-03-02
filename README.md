@@ -62,6 +62,24 @@ Model hashes are collected automatically from the run graph and cached per sessi
 
 ---
 
+## Why TIFF?
+
+Most AI image outputs are saved as flat PNGs or JPEGs — one image, one file. When a pipeline produces multiple meaningful outputs (inpainting mask, outpainted region, heatmaps, composites), you either flood a folder with files or lose the intermediate layers entirely.
+
+TIFF is the only widely-supported lossless format that natively handles multiple named layers in a single file — the same reason it has been the standard archival format in print, broadcast, and medical imaging for decades.
+
+**Lossless compression.** Pages are stored with Deflate/ZIP + delta predictor — no quality degradation, full bit-depth preservation, and roughly 30–50% smaller than uncompressed TIFF. Every pixel is exactly what the model produced.
+
+**Multi-layer, single file.** Each page carries a `PageName` tag (TIFF tag 285) used as the layer name. One file = one complete output set. No zip archives, no naming conventions to maintain.
+
+**Opens natively in Photoshop and Affinity Photo as layers.** Drop the TIFF into Photoshop — each page appears as a separate layer in the Layers panel, named. Same in Affinity Photo, GIMP (via TIFF import), and darktable. This is a TIFF standard behavior, not a plugin requirement.
+
+**macOS native rendering.** Finder thumbnails, QuickLook spacebar preview, and Preview.app all decode the file without any third-party software.
+
+**XMP survives the round-trip.** The full ComfyUI workflow JSON, model hashes, and any custom metadata travel with the file through Photoshop, file systems, and archives — readable by `exiftool`, Lightroom, and any XMP-aware tool.
+
+---
+
 ## Install
 
 ```bash
