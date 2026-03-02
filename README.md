@@ -84,7 +84,7 @@ TIFF is the only widely-supported lossless format that natively handles multiple
 
 ## See also
 
-**[comfyui-xmp-viewer](https://github.com/connerkward/comfyui-xmp-viewer)** — macOS viewer for ComfyUI image metadata. Right-click any PNG or TIFF saved by these nodes → Open With → ComfyQL to see a split panel: image on the left, embedded workflow and model hashes on the right.
+**[tiff-layer-xmp-viewer](https://github.com/connerkward/tiff-layer-xmp-viewer)** — macOS viewer for ComfyUI image metadata. Right-click any PNG or TIFF saved by these nodes → Open With → ComfyQL to see a split panel: image on the left, embedded workflow and model hashes on the right.
 
 ---
 
