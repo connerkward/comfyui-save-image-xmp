@@ -83,7 +83,7 @@ def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str 
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
         '    <rdf:Description rdf:about=""\n'
-        '      xmlns:cfl="http://ns.conward.io/comfyui/1.0/">\n'
+        '      xmlns:cfl="https://github.com/connerkward/comfyui-save-image-xmp/ns/v1">\n'
         f"      <cfl:workflow>{escape(str(workflow))}</cfl:workflow>\n"
         f"      <cfl:prompt>{escape(str(prompt))}</cfl:prompt>\n"
         f"      <cfl:models>{escape(str(models))}</cfl:models>\n"
