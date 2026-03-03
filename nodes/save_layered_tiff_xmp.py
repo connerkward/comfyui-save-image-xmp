@@ -59,7 +59,7 @@ class SaveLayeredTIFFXMP:
             workflow_str = json.dumps(extra_pnginfo[0]["workflow"])
         prompt_str = json.dumps(prompt_dict) if prompt_dict else ""
         models_str = _collect_model_hashes(prompt_dict)
-        extra_str = json_metadata[0] if json_metadata else "{}"
+        json_str = json_metadata[0] if json_metadata else "{}"
 
         # Page 0: preview
         preview_arr = (preview_image[0][0].cpu().numpy() * 255).clip(0, 255).astype("uint8")
@@ -73,7 +73,7 @@ class SaveLayeredTIFFXMP:
                 all_layers.append((name, arr))
 
         layers_str = ",".join(name for name, _ in all_layers)
-        xmp_bytes = _build_xmp(workflow_str, prompt_str, models_str, extra_str, layers_str, author_str).encode("utf-8")
+        xmp_bytes = _build_xmp(workflow_str, prompt_str, models_str, json_str, layers_str, author_str).encode("utf-8")
 
         output_dir = folder_paths.get_output_directory()
         tiff_path = _next_filename(output_dir, prefix, "tiff")

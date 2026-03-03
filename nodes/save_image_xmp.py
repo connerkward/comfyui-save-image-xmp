@@ -77,45 +77,43 @@ def _collect_model_hashes(prompt: dict) -> str:
 
 # --- XMP / file helpers ---
 
-def _build_xmp(workflow: str, prompt: str, models: str, extra: str, layers: str = "", author: str = "") -> str:
-    try:
-        model_list = json.loads(models) if models else []
-        model_names = ", ".join(m["name"] for m in model_list if "name" in m)
-    except (json.JSONDecodeError, TypeError):
-        model_names = ""
+def _build_xmp(workflow: str, prompt: str, models: str, json_metadata: str, layers: str = "", author: str = "") -> str:
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     xmp = (
         '<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">\n'
         '  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n'
         '    <rdf:Description rdf:about=""\n'
-        '      xmlns:cfl="https://github.com/connerkward/comfyui-save-image-xmp/ns/v1">\n'
-        f"      <cfl:workflow>{escape(str(workflow))}</cfl:workflow>\n"
-        f"      <cfl:prompt>{escape(str(prompt))}</cfl:prompt>\n"
-        f"      <cfl:models>{escape(str(models))}</cfl:models>\n"
-        f"      <cfl:extra>{escape(str(extra))}</cfl:extra>\n"
+        '      xmlns:comfy="urn:comfy:xmp:v1">\n'
+        f"      <comfy:workflow>{escape(str(workflow))}</comfy:workflow>\n"
+        f"      <comfy:prompt>{escape(str(prompt))}</comfy:prompt>\n"
+        f"      <comfy:models>{escape(str(models))}</comfy:models>\n"
+        f"      <comfy:json>{escape(str(json_metadata))}</comfy:json>\n"
     )
-    if author:
-        xmp += f"      <cfl:author>{escape(str(author))}</cfl:author>\n"
     if layers:
-        xmp += f"      <cfl:layers>{escape(str(layers))}</cfl:layers>\n"
+        xmp += f"      <comfy:layers>{escape(str(layers))}</comfy:layers>\n"
     xmp += "    </rdf:Description>\n"
 
-    # Dublin Core — visible in Mac Get Info / Windows Properties
-    xmp += '    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+    # XMP core — dates and creator tool
+    xmp += (
+        '    <rdf:Description rdf:about=""\n'
+        '      xmlns:xmp="http://ns.adobe.com/xap/1.0/">\n'
+        f"      <xmp:CreateDate>{now_iso}</xmp:CreateDate>\n"
+        f"      <xmp:CreatorTool>ComfyUI</xmp:CreatorTool>\n"
+        "    </rdf:Description>\n"
+    )
+
+    # Dublin Core — dc:creator visible in Mac Get Info / Windows Properties
     if author:
         xmp += (
+            '    <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
             "      <dc:creator><rdf:Seq>"
             f"<rdf:li>{escape(str(author))}</rdf:li>"
             "</rdf:Seq></dc:creator>\n"
+            "    </rdf:Description>\n"
         )
-    if model_names:
-        xmp += (
-            "      <dc:description><rdf:Alt>"
-            f'<rdf:li xml:lang="x-default">{escape(model_names)}</rdf:li>'
-            "</rdf:Alt></dc:description>\n"
-        )
-    xmp += "    </rdf:Description>\n"
 
     xmp += (
         "  </rdf:RDF>\n"
@@ -211,12 +209,12 @@ class SaveImageXMP:
 
         prompt_str = json.dumps(prompt) if prompt else ""
         models_str = _collect_model_hashes(prompt)
-        extra_str = json_metadata if json_metadata else "{}"
+        json_str = json_metadata if json_metadata else "{}"
 
         results = []
         for tensor in images:
             pil = _tensor_to_pil(tensor)
-            xmp_str = _build_xmp(workflow_str, prompt_str, models_str, extra_str, author=author)
+            xmp_str = _build_xmp(workflow_str, prompt_str, models_str, json_str, author=author)
             xmp_bytes = xmp_str.encode("utf-8")
             path = _next_filename(output_dir, filename_prefix, ext)
 
