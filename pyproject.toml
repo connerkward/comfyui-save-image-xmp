@@ -1,6 +1,6 @@
 [project]
 name = "ComfyUI-SaveLayeredImage"
-version = "0.1.1"
+version = "0.2.0"
 description = "Save layered TIFFs and flat images from ComfyUI with XMP metadata burned into the file — workflow graph, prompt, model SHA256 hashes, and arbitrary JSON embedded per-file."
 license = { text = "MIT" }
 dependencies = ["Pillow", "tifffile"]
