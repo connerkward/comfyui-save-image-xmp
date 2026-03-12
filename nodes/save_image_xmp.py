@@ -179,6 +179,7 @@ class SaveImageXMP:
                 "author": ("STRING", {"default": ""}),
                 "format": (["PNG", "WEBP", "JPEG"],),
                 "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
+                "sidecar_xmp": ("BOOLEAN", {"default": False}),
             },
             "optional": {
                 "json_metadata": ("STRING", {"forceInput": True}),
@@ -196,6 +197,7 @@ class SaveImageXMP:
         author="",
         format="PNG",
         quality=95,
+        sidecar_xmp=False,
         json_metadata=None,
         prompt=None,
         extra_pnginfo=None,
@@ -224,6 +226,11 @@ class SaveImageXMP:
                 _save_webp(pil, path, xmp_bytes, quality)
             elif format == "JPEG":
                 _save_jpeg(pil, path, xmp_bytes, quality)
+
+            if sidecar_xmp:
+                xmp_path = os.path.splitext(path)[0] + ".xmp"
+                with open(xmp_path, "wb") as f:
+                    f.write(xmp_bytes)
 
             results.append({"filename": os.path.basename(path), "subfolder": "", "type": "output"})
 

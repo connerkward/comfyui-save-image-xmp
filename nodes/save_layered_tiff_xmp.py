@@ -22,6 +22,7 @@ class SaveLayeredTIFFXMP:
                 "preview_name": ("STRING", {"default": "preview"}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI-XMP"}),
                 "author": ("STRING", {"default": ""}),
+                "sidecar_xmp": ("BOOLEAN", {"default": False}),
             },
             "optional": {
                 "layers": ("IMAGE",),
@@ -40,6 +41,7 @@ class SaveLayeredTIFFXMP:
         preview_name,     # list[str]
         filename_prefix,  # list[str]
         author=None,      # list[str]
+        sidecar_xmp=None, # list[bool]
         layers=None,      # list[IMAGE tensor] — one entry per connected image
         layer_names=None, # list[str] — optional names aligned to layers
         json_metadata=None,
@@ -91,6 +93,12 @@ class SaveLayeredTIFFXMP:
                     extratags=extratags,
                     metadata=None,
                 )
+
+        write_sidecar = sidecar_xmp[0] if sidecar_xmp else False
+        if write_sidecar:
+            xmp_path = os.path.splitext(tiff_path)[0] + ".xmp"
+            with open(xmp_path, "wb") as f:
+                f.write(xmp_bytes)
 
         temp_dir = folder_paths.get_temp_directory()
         base = os.path.splitext(os.path.basename(tiff_path))[0]
