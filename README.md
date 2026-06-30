@@ -1,5 +1,8 @@
 # ComfyUI Save Layered Image with Metadata!
 
+> **Format spec:** this node is a reference implementation of the [Layered TIFF + XMP](https://github.com/connerkward/layered-tiff-xmp) specification.
+
+
 Stop keeping track of so many files. 
 
 Save layered TIFFs and flat images (Webp, PNG, JPEG) from ComfyUI with XMP metadata burned into the file — the workflow graph, prompts, model SHA256 hashes, and any arbitrary JSON embedded per-file.
